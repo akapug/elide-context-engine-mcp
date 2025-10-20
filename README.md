@@ -51,6 +51,27 @@ All tools are available via the MCP protocol:
 - **complexity_analyze** - Calculate cyclomatic complexity and maintainability metrics using escomplex
 - **dependency_analyze** - Map import/export relationships and build dependency graph for a directory
 
+## Augment Integration
+
+**Auto-detection:** The MCP server automatically detects if it's running in an Augment workspace and adapts accordingly:
+
+- ✅ **Augment mode**: If `../.augment/rules` exists (Augment workspace), memory is written to `../.augment/rules/mcp-memory.md`
+- 📁 **Universal mode**: Otherwise, memory is written to `.mcp/memory/*.mdc`
+
+This means:
+- When used in Augment, memories become **Augment Rules** automatically read by the AI
+- When used in other AI assistants (Cline, Windsurf, etc.), memories use standard MCP format
+- No configuration needed - it just works!
+
+**Augment Rules Format:**
+```markdown
+---
+type: "always"  # or "manual" or "agent_requested"
+description: "Description for auto-detection"
+---
+Your rule content here
+```
+
 ## Modes & feature flags
 
 - **mode=augment** (default): embeddings disabled to avoid duplication
@@ -59,7 +80,6 @@ All tools are available via the MCP protocol:
 
 Environment variables:
 - `ELIDE_MCP_MODE`: augment|universal|custom (default: augment)
-- `ELIDE_MCP_MEM_DIR`: path to memory dir (default: ./.mcp/memory)
 - `ELIDE_MCP_EMBEDDINGS`: on|off|auto (default: auto)
 
 ## Augment MCP configuration

@@ -10,6 +10,30 @@ const embeddingsEnabled = mode === 'universal' || (mode === 'custom' && process.
 
 const server = new McpServer({ name: 'elide-context-engine-mcp', version: '0.1.0' });
 
+/**
+ * Get the appropriate memory directory based on environment
+ * - If ../.augment/rules exists (Augment workspace): use it (Augment-optimized mode)
+ * - Otherwise: use .mcp/memory (universal mode)
+ *
+ * Note: MCP server runs in /code/elide-context-engine-mcp but Augment workspace is /code/
+ */
+function getMemoryDir() {
+  const augmentDir = path.join('..', '.augment', 'rules');
+  if (fs.existsSync(augmentDir)) {
+    return augmentDir;
+  }
+  return path.join('.mcp', 'memory');
+}
+
+/**
+ * Get the default memory file name based on environment
+ */
+function getDefaultMemoryFile() {
+  const memDir = getMemoryDir();
+  const isAugment = memDir.includes('.augment');
+  return path.join(memDir, isAugment ? 'mcp-memory.md' : 'project.mdc');
+}
+
 server.registerTool(
   'memory_suggest',
   { title: 'Suggest project memories', description: 'Analyze text to propose .mdc entries', inputSchema: { text: z.string() }, outputSchema: { entries: z.array(z.any()) } },
@@ -29,24 +53,26 @@ server.registerTool(
 
 server.registerTool(
   'memory_update',
-  { title: 'Apply memory updates', description: 'Write .mdc entries', inputSchema: { entries: z.array(z.any()), file: z.string().optional() }, outputSchema: { ok: z.boolean().optional() } },
+  { title: 'Apply memory updates', description: 'Write memory entries', inputSchema: { entries: z.array(z.any()), file: z.string().optional() }, outputSchema: { ok: z.boolean().optional() } },
   async ({ entries, file }) => {
-    const f = file || path.join('.mcp', 'memory', 'project.mdc');
+    const f = file || getDefaultMemoryFile();
     fs.mkdirSync(path.dirname(f), { recursive: true });
     const lines = (entries || []).map(e => '- [' + e.type + '] ' + e.text);
     fs.appendFileSync(f, lines.join('\n') + '\n');
     const output = { ok: true };
-    return { content: [{ type: 'text', text: 'Wrote ' + lines.length + ' entries to ' + f }], structuredContent: output };
+    const memDir = getMemoryDir();
+    const mode = memDir.includes('.augment') ? 'Augment' : 'MCP';
+    return { content: [{ type: 'text', text: `Wrote ${lines.length} entries to ${f} (${mode} mode)` }], structuredContent: output };
   }
 );
 
 server.registerTool(
   'memory_search',
-  { title: 'Search memories', description: 'Keyword search across .mdc', inputSchema: { query: z.string() }, outputSchema: { results: z.array(z.object({ file: z.string(), excerpt: z.string().optional() })) } },
+  { title: 'Search memories', description: 'Keyword search across memory files', inputSchema: { query: z.string() }, outputSchema: { results: z.array(z.object({ file: z.string(), excerpt: z.string().optional() })) } },
   async ({ query }) => {
     const q = String(query || '').toLowerCase();
     const results = [];
-    const root = path.join('.mcp', 'memory');
+    const root = getMemoryDir();
     if (fs.existsSync(root)) {
       const walk = (dir) => {
         try {
@@ -54,7 +80,7 @@ server.registerTool(
             const p = path.join(dir, e);
             try {
               const st = fs.statSync(p);
-              if (st.isDirectory()) walk(p); else if (p.endsWith('.mdc')) {
+              if (st.isDirectory()) walk(p); else if (p.endsWith('.mdc') || p.endsWith('.md')) {
                 const text = fs.readFileSync(p, 'utf8');
                 if (text.toLowerCase().includes(q)) results.push({ file: p, excerpt: text.slice(0, 200) });
               }
@@ -64,7 +90,9 @@ server.registerTool(
       };
       walk(root);
     }
-    return { content: [{ type: 'text', text: JSON.stringify(results) }], structuredContent: { results } };
+    const memDir = getMemoryDir();
+    const mode = memDir.includes('.augment') ? 'Augment' : 'MCP';
+    return { content: [{ type: 'text', text: `Found ${results.length} matches in ${mode} mode` }], structuredContent: { results } };
   }
 );
 
