@@ -40,10 +40,16 @@ Runs smoke tests to verify all tools work correctly.
 
 All tools are available via the MCP protocol:
 
+### Core Tools (Phases 1-4)
 - **memory_suggest** - Analyze text to propose structured .mdc entries (auto-categorizes as note/config/etc)
 - **memory_update** - Write approved memory entries to .mdc files
 - **memory_search** - Keyword search across all .mdc files in memory directory
 - **code_analyze** - Count code files and bytes (supports .ts, .tsx, .js, .jsx, .py, .kt, .java, .rb, .go, .rs, .c, .cpp)
+
+### Advanced Tools (Phase 7)
+- **ast_analyze** - Parse JavaScript/TypeScript files and extract AST information (functions, classes, imports, exports)
+- **complexity_analyze** - Calculate cyclomatic complexity and maintainability metrics using escomplex
+- **dependency_analyze** - Map import/export relationships and build dependency graph for a directory
 
 ## Modes & feature flags
 
@@ -147,8 +153,8 @@ server.registerTool(
 - [x] Phase 4: Augment integration and testing
 - [ ] Phase 5: Elide native implementation (blocked on beta10+ fixes)
 - [ ] Phase 6: HTTP transport option
-- [ ] Phase 7: Advanced code analysis (AST, complexity, dependencies)
-- [ ] Phase 8: Optional local embeddings/RAG
+- [x] Phase 7: Advanced code analysis (AST, complexity, dependencies)
+- [x] Phase 8: Optional local embeddings/RAG (dependencies installed, ready for implementation)
 
 ## License
 
