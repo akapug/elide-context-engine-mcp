@@ -1,0 +1,18 @@
+{
+  "name": "elide-context-engine-mcp",
+  "version": "1.0.0",
+  "description": "An MCP server that augments AI coding assistants with project memory management, code analysis, and optional local embeddings/RAG.",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.1"
+  }
+}
