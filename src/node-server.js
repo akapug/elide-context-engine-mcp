@@ -34,7 +34,8 @@ server.registerTool(
     fs.mkdirSync(path.dirname(f), { recursive: true });
     const lines = (entries || []).map(e => '- [' + e.type + '] ' + e.text);
     fs.appendFileSync(f, lines.join('\n') + '\n');
-    return { content: [{ type: 'text', text: 'Wrote ' + lines.length + ' entries to ' + f }] };
+    const output = { ok: true };
+    return { content: [{ type: 'text', text: 'Wrote ' + lines.length + ' entries to ' + f }], structuredContent: output };
   }
 );
 
