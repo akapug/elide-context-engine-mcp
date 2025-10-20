@@ -11,7 +11,7 @@ const server = new McpServer({ name: 'elide-context-engine-mcp', version: '0.1.0
 
 server.registerTool(
   'memory_suggest',
-  { title: 'Suggest project memories', description: 'Analyze text to propose .mdc entries', inputSchema: z.object({ text: z.string() }) },
+  { title: 'Suggest project memories', description: 'Analyze text to propose .mdc entries', inputSchema: z.object({ text: z.string() }), outputSchema: z.object({ entries: z.array(z.any()) }) },
   async ({ text }) => {
     const lines = String(text || '').split(/\n+/).map(s => s.trim()).filter(Boolean);
     const entries = [];
@@ -28,7 +28,7 @@ server.registerTool(
 
 server.registerTool(
   'memory_update',
-  { title: 'Apply memory updates', description: 'Write .mdc entries', inputSchema: z.object({ entries: z.array(z.any()), file: z.string().optional() }) },
+  { title: 'Apply memory updates', description: 'Write .mdc entries', inputSchema: z.object({ entries: z.array(z.any()), file: z.string().optional() }), outputSchema: z.object({ ok: z.boolean().optional() }) },
   async ({ entries, file }) => {
     const f = file || path.join('.mcp', 'memory', 'project.mdc');
     fs.mkdirSync(path.dirname(f), { recursive: true });
@@ -40,7 +40,7 @@ server.registerTool(
 
 server.registerTool(
   'memory_search',
-  { title: 'Search memories', description: 'Keyword search across .mdc', inputSchema: z.object({ query: z.string() }) },
+  { title: 'Search memories', description: 'Keyword search across .mdc', inputSchema: z.object({ query: z.string() }), outputSchema: z.object({ results: z.array(z.object({ file: z.string(), excerpt: z.string().optional() })) }) },
   async ({ query }) => {
     const q = String(query || '').toLowerCase();
     const results = [];
@@ -64,7 +64,7 @@ server.registerTool(
 
 server.registerTool(
   'code_analyze',
-  { title: 'Analyze code basics', description: 'Count files/bytes', inputSchema: z.object({ path: z.string() }) },
+  { title: 'Analyze code basics', description: 'Count files/bytes', inputSchema: z.object({ path: z.string() }), outputSchema: z.object({ files: z.number(), bytes: z.number() }) },
   async ({ path: target }) => {
     const exts = ['.ts','.tsx','.js','.jsx','.py','.kt','.java','.rb','.go','.rs','.c','.cpp'];
     let files = 0, bytes = 0;
@@ -86,7 +86,7 @@ server.registerTool(
 if (embeddingsEnabled) {
   server.registerTool(
     'semantic_search',
-    { title: 'Semantic search (stub)', description: 'Local embeddings', inputSchema: z.object({ query: z.string() }) },
+    { title: 'Semantic search (stub)', description: 'Local embeddings', inputSchema: z.object({ query: z.string() }), outputSchema: z.object({}) },
     async ({ query }) => ({ content: [{ type: 'text', text: 'TODO: semantic search: ' + query }] })
   );
 }
