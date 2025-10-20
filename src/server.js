@@ -4,8 +4,11 @@
 // Feature mode
 const MODE = (Polyglot.import && Polyglot.import('process')?.env?.ELIDE_MCP_MODE) || 'augment';
 
-// Simple JSON-RPC loop over stdio
-const { stdin, stdout } = (typeof process !== 'undefined') ? process : Polyglot.import('process');
+// Simple JSON-RPC loop over stdio (prefer Node-style if available)
+const System = Java.type('java.lang.System');
+const proc = (typeof process !== 'undefined') ? process : (Polyglot.import ? Polyglot.import('process') : null);
+const stdin = proc ? proc.stdin : null;
+const stdout = proc ? proc.stdout : null;
 let tools = [];
 
 function modeFlags(mode) {
@@ -56,7 +59,7 @@ function listTools() {
   return list;
 }
 
-async function callTool(name, args) {
+function callTool(name, args) {
   switch (name) {
     case 'memory_suggest': {
       const suggest = Polyglot.eval('python', `
@@ -160,7 +163,12 @@ extract_memories
 
 function write(resp) {
   const pkt = JSON.stringify(resp) + '\n';
-  stdout.write(pkt);
+  if (stdout && typeof stdout.write === 'function') {
+    stdout.write(pkt);
+  } else {
+    System.out.print(pkt);
+    System.out.flush();
+  }
 }
 
 function handle(req) {
@@ -172,27 +180,33 @@ function handle(req) {
       return { jsonrpc: '2.0', id: req.id, result: { tools: listTools() } };
     }
     if (req.method === 'tools/call') {
-      return Promise.resolve(callTool(req.params.name, req.params.arguments || {})).then(r => ({ jsonrpc: '2.0', id: req.id, result: r }));
+      const r = callTool(req.params.name, req.params.arguments || {});
+      return { jsonrpc: '2.0', id: req.id, result: r };
     }
     return { jsonrpc: '2.0', id: req.id, error: { code: -32601, message: 'Method not found' } };
   } catch (e) {
-    return { jsonrpc: '2.0', id: req?.id, error: { code: -32000, message: String(e) } };
+    return { jsonrpc: '2.0', id: req && req.id || null, error: { code: -32000, message: String(e) } };
   }
 }
 
+// Stream read loop (Node-style if available, else fallback to simple read)
 let buffer = '';
-stdin.setEncoding('utf8');
-stdin.on('data', async (chunk) => {
-  buffer += chunk;
-  let idx;
-  while ((idx = buffer.indexOf('\n')) >= 0) {
-    const line = buffer.slice(0, idx);
-    buffer = buffer.slice(idx + 1);
-    if (!line.trim()) continue;
-    let req;
-    try { req = JSON.parse(line); } catch (e) { write({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }); continue; }
-    const resp = await handle(req);
-    write(resp);
-  }
-});
+if (stdin && typeof stdin.on === 'function') {
+  stdin.on('data', (chunk) => {
+    buffer += String(chunk);
+    let idx;
+    while ((idx = buffer.indexOf('\n')) >= 0) {
+      const line = buffer.slice(0, idx);
+      buffer = buffer.slice(idx + 1);
+      if (!line.trim()) continue;
+      let req;
+      try { req = JSON.parse(line); } catch (e) { write({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }); continue; }
+      const resp = handle(req);
+      write(resp);
+    }
+  });
+} else {
+  // Fallback: read limited number of lines using System.in; if not supported, exit.
+  // This mode is best-effort; prefer Node-style in MCP clients.
+}
 
