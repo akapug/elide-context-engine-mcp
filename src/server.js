@@ -206,7 +206,32 @@ if (stdin && typeof stdin.on === 'function') {
     }
   });
 } else {
-  // Fallback: read limited number of lines using System.in; if not supported, exit.
-  // This mode is best-effort; prefer Node-style in MCP clients.
+  // Fallback: byte-wise read from System.in (ASCII-safe for JSON)
+  let lineBuf = [];
+  for (;;) {
+    const b = System['in'].read();
+    if (b === -1) {
+      // flush tail
+      if (lineBuf.length) {
+        const line = String.fromCharCode.apply(null, lineBuf);
+        let req;
+        try { req = JSON.parse(line); } catch (e) { write({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }); break; }
+        const resp = handle(req);
+        write(resp);
+      }
+      break;
+    }
+    if (b === 10) { // \n
+      const line = String.fromCharCode.apply(null, lineBuf);
+      lineBuf = [];
+      if (!line.trim()) continue;
+      let req;
+      try { req = JSON.parse(line); } catch (e) { write({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }); continue; }
+      const resp = handle(req);
+      write(resp);
+    } else if (b !== 13) { // ignore \r
+      lineBuf.push(b);
+    }
+  }
 }
 
