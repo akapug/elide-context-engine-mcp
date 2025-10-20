@@ -12,16 +12,28 @@ const server = new McpServer({ name: 'elide-context-engine-mcp', version: '0.1.0
 
 /**
  * Get the appropriate memory directory based on environment
- * - If ../.augment/rules exists (Augment workspace): use it (Augment-optimized mode)
+ * - If ./.augment/rules exists (CWD has Augment workspace): use it
+ * - Else if ../.augment/rules exists (parent has Augment workspace): use it
  * - Otherwise: use .mcp/memory (universal mode)
  *
- * Note: MCP server runs in /code/elide-context-engine-mcp but Augment workspace is /code/
+ * This handles two cases:
+ * 1. MCP server CWD is /code (Augment workspace root) -> use ./.augment/rules
+ * 2. MCP server CWD is /code/elide-context-engine-mcp -> use ../.augment/rules
  */
 function getMemoryDir() {
-  const augmentDir = path.join('..', '.augment', 'rules');
-  if (fs.existsSync(augmentDir)) {
-    return augmentDir;
+  // Check current directory first
+  const augmentDirCurrent = path.join('.augment', 'rules');
+  if (fs.existsSync(augmentDirCurrent)) {
+    return augmentDirCurrent;
   }
+
+  // Check parent directory
+  const augmentDirParent = path.join('..', '.augment', 'rules');
+  if (fs.existsSync(augmentDirParent)) {
+    return augmentDirParent;
+  }
+
+  // Fallback to MCP mode
   return path.join('.mcp', 'memory');
 }
 
@@ -57,11 +69,29 @@ server.registerTool(
   async ({ entries, file }) => {
     const f = file || getDefaultMemoryFile();
     fs.mkdirSync(path.dirname(f), { recursive: true });
+
+    const memDir = getMemoryDir();
+    const isAugment = memDir.includes('.augment');
+
+    // For Augment mode, add YAML frontmatter if file doesn't exist
+    if (isAugment && !fs.existsSync(f)) {
+      const frontmatter = `---
+type: "always"
+description: "MCP server memories and context"
+---
+
+# MCP Server Memories
+
+This file is automatically managed by the elide-context-engine-mcp server.
+
+`;
+      fs.writeFileSync(f, frontmatter);
+    }
+
     const lines = (entries || []).map(e => '- [' + e.type + '] ' + e.text);
     fs.appendFileSync(f, lines.join('\n') + '\n');
     const output = { ok: true };
-    const memDir = getMemoryDir();
-    const mode = memDir.includes('.augment') ? 'Augment' : 'MCP';
+    const mode = isAugment ? 'Augment' : 'MCP';
     return { content: [{ type: 'text', text: `Wrote ${lines.length} entries to ${f} (${mode} mode)` }], structuredContent: output };
   }
 );
