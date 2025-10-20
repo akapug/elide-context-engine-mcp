@@ -8,13 +8,16 @@ An MCP server that augments AI coding assistants with project memory management,
 
 ## Quick start (local, stdio)
 
-Run with Elide:
+Recommended (Node.js, working today):
 
 ```
-elide ./src/server.js
+npm install
+npm run start:node
 ```
 
-Then configure your MCP client (Augment, Claude Desktop, etc.) to run the above command as a stdio MCP server.
+This starts an MCP stdio server using @modelcontextprotocol/sdk.
+
+Elide-native stdio server is currently blocked in 1.0.0-beta10 due to upstream stdio/HTTP intrinsics. We’ll switch the default back to pure Elide when fixed.
 
 ## Tools (MVP)
 
@@ -34,13 +37,29 @@ Environment variables:
 - ELIDE_MCP_MEM_DIR: path to memory dir (default: ./.mcp/memory)
 - ELIDE_MCP_EMBEDDINGS: on|off|auto (default: auto)
 
-## HTTP transport (Node.js shim)
+## Augment MCP configuration
 
-Temporary shim (until Elide HTTP intrinsics are fixed):
+Example to add in Augment Agent’s MCP settings (stdio):
 
-```
-node ./shim/http-bridge.js
-```
+<augment_code_snippet mode="EXCERPT">
+````json
+{
+  "name": "elide-context-engine-mcp",
+  "type": "stdio",
+  "command": "node",
+  "args": ["./src/node-server.js"],
+  "cwd": "/home/pug/code/elide-context-engine-mcp",
+  "env": {
+    "ELIDE_MCP_MODE": "augment",
+    "ELIDE_MCP_EMBEDDINGS": "auto"
+  }
+}
+````
+</augment_code_snippet>
 
-It spawns the Elide stdio server and exposes HTTP JSON-RPC on localhost.
+- In Augment mode, local embeddings are off by default to avoid duplicating Augment’s Context Engine.
+- Switch to `universal` mode to enable the `semantic_search` stub.
 
+## HTTP transport (future)
+
+Once Elide’s HTTP intrinsics are fixed, we’ll add a lightweight HTTP bridge. For now, prefer stdio.
