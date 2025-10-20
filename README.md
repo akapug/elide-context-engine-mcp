@@ -64,7 +64,7 @@ In Augment's MCP settings, click "Add MCP" and configure:
 
 **Command:**
 ```
-node /home/pug/code/elide-context-engine-mcp/src/node-server.js
+node [/home/...]/elide-context-engine-mcp/src/node-server.js
 ```
 
 **Environment Variables:**
