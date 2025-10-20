@@ -1,0 +1,3 @@
+- [note] Decision: Use Node.js + MCP SDK for stdio transport until Elide beta fixes land
+- [config] API: MCP server exposes memory_suggest, memory_update, memory_search, code_analyze tools
+- [config] Config: ELIDE_MCP_MODE=augment disables embeddings to avoid duplicating Augment Context Engine

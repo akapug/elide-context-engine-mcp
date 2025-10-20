@@ -48,14 +48,18 @@ server.registerTool(
     const root = path.join('.mcp', 'memory');
     if (fs.existsSync(root)) {
       const walk = (dir) => {
-        for (const e of fs.readdirSync(dir)) {
-          const p = path.join(dir, e);
-          const st = fs.statSync(p);
-          if (st.isDirectory()) walk(p); else if (p.endsWith('.mdc')) {
-            const text = fs.readFileSync(p, 'utf8');
-            if (text.toLowerCase().includes(q)) results.push({ file: p, excerpt: text.slice(0, 200) });
+        try {
+          for (const e of fs.readdirSync(dir)) {
+            const p = path.join(dir, e);
+            try {
+              const st = fs.statSync(p);
+              if (st.isDirectory()) walk(p); else if (p.endsWith('.mdc')) {
+                const text = fs.readFileSync(p, 'utf8');
+                if (text.toLowerCase().includes(q)) results.push({ file: p, excerpt: text.slice(0, 200) });
+              }
+            } catch (err) { /* skip inaccessible files */ }
           }
-        }
+        } catch (err) { /* skip inaccessible dirs */ }
       };
       walk(root);
     }
@@ -69,17 +73,25 @@ server.registerTool(
   async ({ path: target }) => {
     const exts = ['.ts','.tsx','.js','.jsx','.py','.kt','.java','.rb','.go','.rs','.c','.cpp'];
     let files = 0, bytes = 0;
-    const st = fs.statSync(target);
-    if (st.isDirectory()) {
-      const walk = (dir) => {
-        for (const e of fs.readdirSync(dir)) {
-          const p = path.join(dir, e);
-          const s = fs.statSync(p);
-          if (s.isDirectory()) walk(p); else if (exts.some(x => p.endsWith(x))) { files++; bytes += s.size; }
-        }
-      };
-      walk(target);
-    } else { files = 1; bytes = st.size; }
+    try {
+      const st = fs.statSync(target);
+      if (st.isDirectory()) {
+        const walk = (dir) => {
+          try {
+            for (const e of fs.readdirSync(dir)) {
+              const p = path.join(dir, e);
+              try {
+                const s = fs.statSync(p);
+                if (s.isDirectory()) walk(p); else if (exts.some(x => p.endsWith(x))) { files++; bytes += s.size; }
+              } catch (err) { /* skip inaccessible files */ }
+            }
+          } catch (err) { /* skip inaccessible dirs */ }
+        };
+        walk(target);
+      } else { files = 1; bytes = st.size; }
+    } catch (err) {
+      return { content: [{ type: 'text', text: 'Error: ' + err.message }], structuredContent: { files: 0, bytes: 0 } };
+    }
     return { content: [{ type: 'text', text: 'files=' + files + ', bytes=' + bytes }], structuredContent: { files, bytes } };
   }
 );
