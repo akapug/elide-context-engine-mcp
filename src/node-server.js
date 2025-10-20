@@ -3,6 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import fs from 'node:fs';
 import path from 'node:path';
+import { analyzeAST, analyzeComplexity, analyzeDependencies, getASTSummary, getComplexitySummary, getDependencySummary } from './advanced-analysis.js';
 
 const mode = process.env.ELIDE_MCP_MODE || 'augment';
 const embeddingsEnabled = mode === 'universal' || (mode === 'custom' && process.env.ELIDE_MCP_EMBEDDINGS === 'on');
@@ -93,6 +94,58 @@ server.registerTool(
       return { content: [{ type: 'text', text: 'Error: ' + err.message }], structuredContent: { files: 0, bytes: 0 } };
     }
     return { content: [{ type: 'text', text: 'files=' + files + ', bytes=' + bytes }], structuredContent: { files, bytes } };
+  }
+);
+
+// Phase 7: Advanced code analysis
+server.registerTool(
+  'ast_analyze',
+  {
+    title: 'AST Analysis',
+    description: 'Parse JavaScript/TypeScript and extract AST information (functions, classes, imports, exports)',
+    inputSchema: { path: z.string() }
+  },
+  async ({ path: filePath }) => {
+    const result = analyzeAST(filePath);
+    const summary = getASTSummary(result);
+    return {
+      content: [{ type: 'text', text: summary }],
+      structuredContent: result
+    };
+  }
+);
+
+server.registerTool(
+  'complexity_analyze',
+  {
+    title: 'Complexity Analysis',
+    description: 'Calculate cyclomatic complexity and maintainability metrics',
+    inputSchema: { path: z.string() }
+  },
+  async ({ path: filePath }) => {
+    const result = analyzeComplexity(filePath);
+    const summary = getComplexitySummary(result);
+    return {
+      content: [{ type: 'text', text: summary }],
+      structuredContent: result
+    };
+  }
+);
+
+server.registerTool(
+  'dependency_analyze',
+  {
+    title: 'Dependency Analysis',
+    description: 'Map import/export relationships and build dependency graph',
+    inputSchema: { path: z.string() }
+  },
+  async ({ path: dirPath }) => {
+    const result = analyzeDependencies(dirPath);
+    const summary = getDependencySummary(result);
+    return {
+      content: [{ type: 'text', text: summary }],
+      structuredContent: result
+    };
   }
 );
 
