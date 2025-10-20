@@ -9,7 +9,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "node ./test/smoke.mjs",
+    "test": "node ./test/node-smoke.mjs",
     "start:node": "node ./src/node-server.js"
   },
   "keywords": [],
