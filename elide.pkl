@@ -1,0 +1,27 @@
+amends "elide:project.pkl"
+
+name = "Elide Context Engine MCP"
+description = "MCP server providing memory, analysis, and optional embeddings for AI coding assistants."
+version = "0.1.0"
+
+# Entrypoint for stdio MCP
+[javascript]
+entrypoint = "./src/server.js"
+
+[python]
+version = "3.11"
+
+[kotlin]
+version = "24"
+
+[workspaces]
+root = "."
+
+[scripts]
+run = "elide ./src/server.js"
+
+'test:smoke' = "node ./test/smoke.mjs"
+
+[env]
+ELIDE_MCP_MODE = "augment"
+ELIDE_MCP_EMBEDDINGS = "auto"

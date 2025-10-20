@@ -8,10 +8,10 @@ An MCP server that augments AI coding assistants with project memory management,
 
 ## Quick start (local, stdio)
 
-Run with Elide (requires host permissions for file I/O):
+Run with Elide:
 
 ```
-elide --host:allow-all --host:allow-io ./src/server.mjs
+elide ./src/server.js
 ```
 
 Then configure your MCP client (Augment, Claude Desktop, etc.) to run the above command as a stdio MCP server.
